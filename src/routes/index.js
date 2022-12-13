@@ -1,7 +1,7 @@
 const express = require('express')
 const passport = require('passport')
-const genPassword = require('../lib/passwordUtils').genPassword//in routes you must use genPassword, at the passport.js you use verifyPassword
-const UserTB = require('../model/User')
+const genPassword = require('../lib/passwordUtils')//in routes you must use genPassword, at the passport.js you use verifyPassword
+const userTB = require('../model/User')
 const path = require('path')
 
 const router = express.Router()
@@ -11,21 +11,17 @@ router.post('/login', passport.authenticate('local'), (req, res, next) => {})
 
 router.post('/register', (req, res, next) => {
 
-    console.log('password: ' + req.body.password)
-    console.log('username: ' + req.body.username)
-    console.log('uanme' + req.body.uname)
+     const saltHash = genPassword(req.body.pw)
 
-//     const saltHash = genPassword(req.body.pw)
+     const salt = saltHash.salt
+     const hash = saltHash.genHash
 
-//     const salt = saltHash.salt
-//     const hash = saltHash.hash
-
-//     const newUser = userTB.create({
-//         User_Name : req.body.uname,
-//         User_Hash: hash,
-//         User_Salt: salt
-//     }).then(console.log(newUser))
-//     .catch(console.log('An error has occured'))
+     userTB.create({
+         User_name: req.body.uname,
+         User_hash: hash,
+         User_salt: salt
+     }).then(res.redirect('/'))
+     .catch((err) => {console.log(err)})
 })
 
 router.get('/register', (req, res) => {
