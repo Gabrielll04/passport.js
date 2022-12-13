@@ -1,21 +1,51 @@
-const crypto = require('crypto')
+const passport = require('passport')
+const LocalStrategy = require('passport-local').Strategy
+const conn = require('./AppDB')
+const userTB = require('../model/User')
+const validPassword = require('../lib/passwordUtils').validPassword
 
-function genPassword(password){
-    var salt = crypto.randomBytes(32).toString('hex')//randomBytes generates a artificial random number, the firts parameter are the size. toString turn the randomBytes in a hexadecial string
-    var genHash = crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha512').toString('hex')//1000 indica que a função será executada x vezes para gerar uma chave derivada. 64 indica o tamanho da chave em bytes. 'sha512' especifica que a função deve usar o algoritmo de hash SHA-512 para gerar a chave. No final, transformamos a chave em uma string hexadecimal, útil para armazenas e transmitir a chave de forma segura. PBKDF2 diz que a senha é derivada de senha
-
-    return {
-        salt: salt,
-        genHash: genHash
-    }
+const customFields = {//password know where to look. This is req.body object
+    usernameField: 'uname',
+    passwordField: 'pw',  
 }
 
-function validPassword(password, hash, salt){
-    var hashVerify = crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha512').toString('hex')
-    return hash === hashVerify
+const verifyCallback = (username, password, done) => {//done is a callback
+    userTB.findOne({where: {User_name: username}})
+        .then((user) => {//this line is a basic promise
+            if (!user){ return done(null, false) }//if user is not found, telling passport there is no error (the null) nut theres not a user (false)
+
+            const isValid = validPassword(password, user.hash, user.salt)
+
+            if(isValid){
+                return done(null, user)
+            }else {
+                return done(null, false)
+            }
+        })
+        .catch((err) => {
+            done(err)//an errors has heppened
+        })
 }
 
-module.exports = {
-    validPassword: validPassword,
-    genPassword: genPassword
-}
+const strategy = new LocalStrategy(customFields, verifyCallback)
+
+passport.use(strategy)
+
+passport.serializeUser((user, done) => {//this has to do with the express session and how we put a user into the session
+    done(null, user.id)
+})
+
+passport.deserializeUser((userId, done) => {
+    const id = userId
+    userTB.findOne({where: {id: id}})
+    .then((user) => {
+        done(null, user)
+    })
+    .catch(err => done(err))
+})
+
+// passport.use(new LocalStrategy({
+//     function(username, password, callback){
+    
+//     }
+// }))
