@@ -2,7 +2,7 @@ const passport = require('passport')
 const LocalStrategy = require('passport-local').Strategy
 const conn = require('./AppDB')
 const userTB = require('../model/User')
-const validPassword = require('../lib/passwordUtils').validPassword
+const utils = require('../lib/passwordUtils')
 
 const customFields = {//password know where to look. This is req.body object
     usernameField: 'uname',
@@ -14,7 +14,7 @@ const verifyCallback = (username, password, done) => {//done is a callback
         .then((user) => {//this line is a basic promise
             if (!user){ return done(null, false) }//if user is not found, telling passport there is no error (the null) nut theres not a user (false)
 
-            const isValid = validPassword(password, user.hash, user.salt)
+            const isValid = utils.validPassword(password, user.User_hash, user.User_salt)
 
             if(isValid){
                 return done(null, user)
@@ -23,7 +23,7 @@ const verifyCallback = (username, password, done) => {//done is a callback
             }
         })
         .catch((err) => {
-            done(err)//an errors has heppened
+            done('erro: '+err)//an errors has heppened
         })
 }
 
@@ -35,7 +35,7 @@ passport.serializeUser((user, done) => {//this has to do with the express sessio
     done(null, user.id)
 })
 
-passport.deserializeUser((userId, done) => {
+passport.deserializeUser((userId, done) => {//deserialize get the user id and insert that into the passport.user. req.user works because of this
     const id = userId
     userTB.findOne({where: {id: id}})
     .then((user) => {
