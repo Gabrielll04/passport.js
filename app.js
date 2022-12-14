@@ -27,9 +27,10 @@ app.use(passport.initialize())//initializing passport middleware
 app.use(passport.session())//has to do a little bit with serialize and deserialize
 //the express session gives us access to the request.session object and anything that we store on the request.json object inside any of the routes is going to be persisted to the database under the sessions collection
 
-app.use((req, res, next) => {
+ app.use((req, res, next) => {//could be undefined when we hanve't yet authenticated our user using passport.autenticate
     console.log(req.session)
     console.log(req.user)
+    next()
 })
 
 //routes
